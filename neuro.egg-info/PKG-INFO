@@ -1,0 +1,32 @@
+Metadata-Version: 2.1
+Name: neuro
+Version: 0.1.0.dev0
+Summary: Module for analyzing neurological data
+Home-page: https://github.com/CamHolman/neuro
+Download-URL: https://github.com/JacobsSU/AnalyzeTH
+Maintainer: ['Cameron Holman']
+Maintainer-email: ['cameron.holman@columbia.edu']
+License: Apache License, 2.0
+Project-URL: Documentation, WIP
+Project-URL: Bug Reports, WIP
+Project-URL: Source, WIP
+Keywords: neuroscience,single units,spike analyses,electrophysiology,memory,spatial navigation
+Platform: any
+Classifier: Development Status :: 3 - AlphaIntended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Unix
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Python: >=3.7
+License-File: LICENSE
+
+ # neuro
+
+
