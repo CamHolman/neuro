@@ -12,6 +12,8 @@ def load_nwb(filepath, verbose = True):
     """ 
     Load NWB file from filepath
 
+    WIP - may implement py-lev natively
+
     PARAMETERS
     ----------
     filepath : str
