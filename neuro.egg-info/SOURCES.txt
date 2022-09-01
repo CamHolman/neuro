@@ -8,6 +8,8 @@ neuro.egg-info/SOURCES.txt
 neuro.egg-info/dependency_links.txt
 neuro.egg-info/requires.txt
 neuro.egg-info/top_level.txt
-neuro/classes/DataIO.py
-neuro/classes/Neuron.py
-neuro/classes/__init__.py
+neuro/io/DataIO.py
+neuro/io/__init__.py
+neuro/io/load_nwb.py
+neuro/neuron/Neuron.py
+neuro/neuron/__init__.py

@@ -7,10 +7,11 @@ Space for building 1
 """
 import dataclasses
 from dataclasses import dataclass, field
+from importlib.resources import path
 from typing import Any, List
 
 
-# -SUBJECT- 
+# -TASK-
 @dataclass
 class Task:
     name: str
@@ -25,6 +26,7 @@ class TaskCityBlock(Task):
     pass
 
 
+# -SUBJECT- 
 @dataclass(kw_only=True)
 class SubjectData:
     """
@@ -55,7 +57,7 @@ class SubjectData:
 
 class Subject(SubjectData):
     """
-    Base Class for Subject
+    Class for Subject
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -81,10 +83,16 @@ class ElectrodeData:
                 raise ValueError(f'Expected {field.name} to be {field.type}, '
                                 f'got {repr(value)}')
 
+class Electrode:
+    """
+    Class for Electrode
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 @dataclass(kw_only=True)
-class ElectrodeBenkheFriedData(ElectrodeData):
+class ElectrodeBenkheFriedData(Electrode):
     """
     subDataClass for Benkhe-Fried
     """
@@ -125,29 +133,84 @@ class ElectrodeContactData:
     BaseDataclass for electrode contacts
     """
     # ID
-    id           : str    = dataclasses.field(default_factory=str)
-    electrode    : object = dataclasses.field(default_factory=
-    contact_type : str    = dataclasses.field(default_factory=str)
+    id           : str       = dataclasses.field(default_factory=str)
+    contact_type : str       = dataclasses.field(default_factory=str)
+    electrode    : Electrode = None                                      # On Electrode 
+    subject      : Subject   = None                                      # In Subject
 
-    # Data
-    surface_area : float = 0.0
+    # Data 
+    surface_area : float     = dataclasses.field(default_factory=float)
+
+    # Enforce attribute type on init
+    def __post_init__(self):
+        for field in dataclasses.fields(self):
+            value = getattr(self, field.name)
+            if not isinstance(value, field.type):
+                raise ValueError(f'Expected {field.name} to be {field.type}, '
+                                f'got {repr(value)}')
 
 
+class ElectrodeContact(ElectrodeContactData):
+    """
+    Class for Electrode Contact
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+# --Microcontact--
 @dataclass
 class MicroContactData(ElectrodeContactData):
     """
     subDataClass for micro contacts
     """
-    
+    pass 
 
+
+# -RECORDING-
+@dataclass
+class NeuralRecordingData:
+    """
+    Dataclass for each recording
+    """
+    id        : str              = dataclasses.field(default_factory=str)
+    ix        : int              = dataclasses.field(default_factory=int)
+    contact   : ElectrodeContact = None
+    electrode : Electrode        = None
+    subject   : Subject          = None
+
+    # Data Location
+    recording_file_path = dataclasses.field(default_factory=str)
+
+    # Data
+    raw_data = Any = None
+
+
+class NeuralRecording(NeuralRecordingData):
+    """
+    Class for Neural Recordings
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
 
 # -NEURON-
 @dataclass 
-class UnitData:
+class NeuronData:
     """
-    Dataclass for single unit neuron level information
+    BaseDataclass for single unit neuron level information
     """
-    
+    id        : str              = dataclasses.field(default_factory=str)
+    ix        : int              = dataclasses.field(default_factory=int)
+    recording : NeuralRecording  = None
+    contact   : ElectrodeContact = None
+    electrode : Electrode        = None
+    subject   : Subject          = None
+
+    # Data
+    spike_train : Any = dataclasses.field(default_factory=list)
+
+
 
 class Neuron:
     """
@@ -155,8 +218,12 @@ class Neuron:
     """
     def __init__(self, *args):
         super().__init__(*args)
-        self.neuron_
 
+    def firing_rate(self):
+
+
+
+# -- Neuron Types --
 class NeuronHeadDirection(Neuron):
     pass
 
