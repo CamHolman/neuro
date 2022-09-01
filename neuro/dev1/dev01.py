@@ -89,16 +89,16 @@ class ElectrodeBenkheFriedData(ElectrodeData):
     subDataClass for Benkhe-Fried
     """
     # Macro
+    macro_contacts_num : int  = 8
     macro_contacts     : list = dataclasses.field(default_factory=list)
     macro_reference    : str  = dataclasses.field(default_factory=str)
-    macro_contacts_num : int  = 8
     
     # Micro 
+    micro_contacts_num : int  = 8
     micro_contacts     : list = dataclasses.field(default_factory=list)
     micro_reference    : str  = dataclasses.field(default_factory= str)
-    micro_contacts_num : int  = 8
 
-        # Enforce attribute type on init
+    # Enforce attribute type on init
     def __post_init__(self):
         for field in dataclasses.fields(self):
             value = getattr(self, field.name)
@@ -113,8 +113,7 @@ class ElectrodeBenkheFried(ElectrodeBenkheFriedData):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.macro_contacts_num = 200
-        
+
 EBF =  ElectrodeBenkheFried  #alias
 
 
@@ -126,12 +125,11 @@ class ElectrodeContactData:
     BaseDataclass for electrode contacts
     """
     # ID
-    id           : str    = ''
-    electrode    : object = None
-    contact_type : str    = 'Micro or Macro'
+    id           : str    = dataclasses.field(default_factory=str)
+    electrode    : object = dataclasses.field(default_factory=
+    contact_type : str    = dataclasses.field(default_factory=str)
 
     # Data
-
     surface_area : float = 0.0
 
 
