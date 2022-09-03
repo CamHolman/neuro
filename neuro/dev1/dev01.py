@@ -4,6 +4,16 @@
 """
 Space for building 1
 
+useful: https://python.astrotech.io/intermediate/dataclass/metadata.html
+    see 4.9.4 for type enforcement
+
+
+    https://kplauritzen.dk/2021/08/11/convert-dataclasss-np-array.html
+    returning array tuple
+
+    https://stackoverflow.com/questions/67100439/what-is-field-metadata-used-for-in-python-dataclasses
+    external metadata for fields
+
 """
 import dataclasses
 from dataclasses import dataclass, field
@@ -19,6 +29,10 @@ class Task:
     
 
 class TaskTreasureHunt(Task):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+
     pass
 TH = TaskTreasureHunt #alias
 
@@ -52,6 +66,7 @@ class SubjectData:
             if not isinstance(value, field.type):
                 raise ValueError(f'Expected {field.name} to be {field.type}, '
                                 f'got {repr(value)}')
+    
 
 
 
@@ -83,7 +98,7 @@ class ElectrodeData:
                 raise ValueError(f'Expected {field.name} to be {field.type}, '
                                 f'got {repr(value)}')
 
-class Electrode:
+class Electrode(ElectrodeData):
     """
     Class for Electrode
     """
@@ -127,7 +142,7 @@ EBF =  ElectrodeBenkheFried  #alias
 
 
 # -CONTACT- 
-@dataclass
+@dataclass(kw_only=True)
 class ElectrodeContactData:
     """
     BaseDataclass for electrode contacts
@@ -159,7 +174,7 @@ class ElectrodeContact(ElectrodeContactData):
 
 
 # --Microcontact--
-@dataclass
+@dataclass(kw_only=True)
 class MicroContactData(ElectrodeContactData):
     """
     subDataClass for micro contacts
@@ -168,7 +183,7 @@ class MicroContactData(ElectrodeContactData):
 
 
 # -RECORDING-
-@dataclass
+@dataclass(kw_only=True)
 class NeuralRecordingData:
     """
     Dataclass for each recording
@@ -178,12 +193,17 @@ class NeuralRecordingData:
     contact   : ElectrodeContact = None
     electrode : Electrode        = None
     subject   : Subject          = None
-
+    
     # Data Location
-    recording_file_path = dataclasses.field(default_factory=str)
+    recording_file_path : str    = dataclasses.field(default_factory=str)
 
-    # Data
-    raw_data = Any = None
+    # Raw Data
+    raw_data : Any = None
+    
+    # Meta Data
+    tstart : float = dataclasses.field(default_factory=float, metadata={'unit': 'sec'})
+    length : float = dataclasses.field(default_factory=float, metadata={'unit': 'sec'})
+
 
 
 class NeuralRecording(NeuralRecordingData):
@@ -192,13 +212,71 @@ class NeuralRecording(NeuralRecordingData):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-    
+
+
+    @property
+    def recording_length(self):
+        return len(self.raw_data)
+
 
 # -NEURON-
-@dataclass 
+@dataclass(kw_only=True)
 class NeuronData:
     """
     BaseDataclass for single unit neuron level information
+
+    Atributes
+    ---------
+    id : str 
+        unique identifier
+    ix : int
+        numbered identifier
+    subject: object
+        Subject class instance
+    recording : object
+        NeuralRecording class instance 
+    electrode : object
+        Electrode class instance 
+    contact:
+        ElectrodeContact class instance
+    
+    spikes: 1D arr
+        spike times in sec
+    """
+
+    id        : str              = dataclasses.field(default_factory=str)
+    ix        : int              = dataclasses.field(default_factory=int)
+    subject   : Subject          = None
+    recording : NeuralRecording  = None
+    electrode : Electrode        = None
+    contact   : ElectrodeContact = None
+
+    # Data
+    spiketrain : Any = dataclasses.field(default_factory=list)
+
+
+
+class Neuron(NeuronData):
+    """
+    Class for Neuron
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @property
+    def spike_count(self):
+        return sum(self.spike_train)
+
+    @property
+    def firing_rate(self):
+        return self.spike_count / self.recording.recording_length 
+
+
+## maybe too much 
+@dataclass
+class SpikeTrainData:
+    """
+    BaseDC for spike trains
     """
     id        : str              = dataclasses.field(default_factory=str)
     ix        : int              = dataclasses.field(default_factory=int)
@@ -206,27 +284,22 @@ class NeuronData:
     contact   : ElectrodeContact = None
     electrode : Electrode        = None
     subject   : Subject          = None
-
-    # Data
-    spike_train : Any = dataclasses.field(default_factory=list)
-
-
-
-class Neuron:
-    """
-    Class for Neuron
-    """
-    def __init__(self, *args):
-        super().__init__(*args)
-
-    def firing_rate(self):
-
+    
+    #Data
+    
 
 
 # -- Neuron Types --
-class NeuronHeadDirection(Neuron):
-    pass
+@dataclass
+class HeadDirectionData:
+    occupancy
 
+class HeadDirectionNeuron(HeadDirectionData, Neuron):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        occupancy = [] 
+        # https://stackoverflow.com/questions/3277367/how-does-pythons-super-work-with-multiple-inheritance
+    
 
 
 ########################
