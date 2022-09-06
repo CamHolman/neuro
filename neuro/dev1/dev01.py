@@ -22,7 +22,7 @@ from typing import Any, List
 
 
 # -TASK-
-@dataclass
+@dataclass(kw_only=True)
 class Task:
     name: str
     version: int
@@ -31,10 +31,18 @@ class Task:
 class TaskTreasureHunt(Task):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-    
-
     pass
+
 TH = TaskTreasureHunt #alias
+
+class SessionTreasureHunt(TaskTreasureHunt):
+    """
+    Class to represent each session of treasure hunt...
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    
 
 class TaskCityBlock(Task):
     pass
