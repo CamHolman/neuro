@@ -273,40 +273,50 @@ class Neuron(NeuronData):
 
     @property
     def spike_count(self):
-        return sum(self.spike_train)
+        return len(self.spike_train)
 
     @property
     def firing_rate(self):
         return self.spike_count / self.recording.recording_length 
 
 
-## maybe too much 
-@dataclass
-class SpikeTrainData:
-    """
-    BaseDC for spike trains
-    """
-    id        : str              = dataclasses.field(default_factory=str)
-    ix        : int              = dataclasses.field(default_factory=int)
-    recording : NeuralRecording  = None
-    contact   : ElectrodeContact = None
-    electrode : Electrode        = None
-    subject   : Subject          = None
+# ## maybe too much 
+# @dataclass
+# class SpikeTrainData:
+#     """
+#     BaseDC for spike trains
+#     """
+#     id        : str              = dataclasses.field(default_factory=str)
+#     ix        : int              = dataclasses.field(default_factory=int)
+#     recording : NeuralRecording  = None
+#     contact   : ElectrodeContact = None
+#     electrode : Electrode        = None
+#     subject   : Subject          = None
     
-    #Data
+#     #Data
     
 
 
 # -- Neuron Types --
 @dataclass
-class HeadDirectionData:
-    occupancy
+class _HeadDirectionData:
+    hd_occupancy = None
+    hd_times = None
+    hd_degrees = None
 
-class HeadDirectionNeuron(HeadDirectionData, Neuron):
+
+class NeuronHeadDirectionAnalysis(Neuron, _HeadDirectionData, DataIO):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        occupancy = [] 
+ 
+
+
+
         # https://stackoverflow.com/questions/3277367/how-does-pythons-super-work-with-multiple-inheritance
+    
+
+
+def create_HDA(nwbfile):
     
 
 
