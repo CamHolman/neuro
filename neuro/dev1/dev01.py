@@ -28,19 +28,27 @@ class Task:
     version: int
     
 
-class TaskTreasureHunt(Task):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-    pass
+#class TaskTreasureHunt(Task):
+#    def __init__(self, **kwargs):
+#        super().__init__(**kwargs)
+#    pass
 
-TH = TaskTreasureHunt #alias
+#TH = TaskTreasureHunt #alias
 
-class SessionTreasureHunt(TaskTreasureHunt):
+@dataclass(kw_only=True)
+class Session(Task):
+    session_start_time : float = 0.0
+    session_end_time : float = 0.0
+
+
+@dataclass(kwonly=True)
+class TreasureHunt(Task, Session):
     """
     Class to represent each session of treasure hunt...
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    navigation_start_times : list = field(default_factory=list, metadata={'info': 'Start times of navigation epochs', 'units' : 'seconds'})
+    navigation_stop_times : list = field(default_factory=list, metadata={'info': 'Stop times of navigation epochs', 'units' : 'seconds' })
+
 
     
 
@@ -260,7 +268,7 @@ class NeuronData:
     contact   : ElectrodeContact = None
 
     # Data
-    spiketrain : Any = dataclasses.field(default_factory=list)
+    spiketrain : list = dataclasses.field(default_factory=list)
 
 
 
@@ -298,14 +306,29 @@ class Neuron(NeuronData):
 
 
 # -- Neuron Types --
-@dataclass
-class _HeadDirectionData:
-    hd_occupancy = None
-    hd_times = None
-    hd_degrees = None
+@dataclass(kw_only=True)
+class _HeadDirectionNeuron:
+    # HD Data
+    hd_occupancy : list = field(default_factory=list, metadata={'info': 'Seconds spent in each bin', 'unit':'seconds'})
+    hd_times     : list = field(default_factory=list, metadata={'info': 'Times at which head direction was recorded', 'unit':'seconds'})
+    hd_degrees   : list = field(default_factory=list, metadata={'info': 'Recorded head directions, matched to hd_times', 'unit':'degrees'})
+    
+    # Session & Epoch data - define epochs relevant to HD
+    session_start_time : float = 0.0
+    session_stop_time : float = 0.0 
+    epoch_start_times : list = field(default_factory=list, metadata={'info': 'Start times of epochs of interest', 'unit':'seconds'})
+    epoch_stop_times : list = field(default_factory=list, metadata={'info': 'Stop times of epochs of interest', 'unit':'seconds'})
 
 
-class NeuronHeadDirectionAnalysis(Neuron, _HeadDirectionData, DataIO):
+    def __post_init__(self):
+        if self.hd_occupancy == []:
+            self.compute_occupancy()
+
+    def compute_occupancy(self):
+
+
+
+class HeadDirectionNeuron(_HeadDirectionNeuron, Neuron, Session):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
  
