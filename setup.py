@@ -20,7 +20,7 @@ setup(
     version = __version__,
     description = 'Module for analyzing neurological data',
     long_description = long_description,
-    python_requires = '>=3.7',
+    python_requires = '>=3.10',
     maintainer = ['Cameron Holman'],
     maintainer_email = ['cameron.holman@columbia.edu'],
     url = 'https://github.com/CamHolman/neuro',
