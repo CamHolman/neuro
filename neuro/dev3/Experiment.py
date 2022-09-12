@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
+from keyword import kwlist
 
-class DataIO:
-    pass 
+from neuro.components import *
 
 
 
@@ -17,6 +17,7 @@ class _Experiment:
     # Components
     subject: Subject = None
     session: Session = None
+
     
 
 
@@ -28,10 +29,18 @@ class Experiment(_Experiment):
         super().__init__(**kwargs)
 
     
+    
+
     pass
+
+@dataclass(kw_only=True)
+class _SingleUnitExperiment:
+    pass 
 
 class SingleUnitExperiment(Experiment):
     pass
 
 
+
 class HeadDirectionExperiment(SingleUnitExperiment):
+    pass
