@@ -12,7 +12,7 @@ class NavigationBehavior:
 
 @dataclass(kw_only=True)
 class MemoryBehavior:
-    
+    pass
 
 @dataclass(kw_only=True)
 class Behavior:
@@ -21,11 +21,9 @@ class Behavior:
     pass
 
 
-
-
-@dataclass(kw_only=True):
+@dataclass(kw_only=True)
 class TreasureHuntBehavior(Behavior):
     # Positions
 
     # 
-
+    pass

@@ -1,10 +1,11 @@
 
-
+# External
 from dataclasses import dataclass, field
-
 from abc import abstractmethod
-#from re import X
+import pynwb 
 
+# Local
+from neuro.io.load_nwb import *
 
 class DataIO:
     """ 
@@ -14,16 +15,19 @@ class DataIO:
     def __init__(self, file = ''):
         self.file = file
 
-    @abstractmethod # TODO: or @abstractclassmethod?
+    @abstractmethod 
     def load(self):
         pass
 
+    @abstractmethod
     def save(self):
         pass
     
+    @abstractmethod
     def load_external(self):
         pass
 
+    @abstractmethod
     def compute(self):
         pass 
 
@@ -40,16 +44,67 @@ class _NWBIO:
     
 
 
-class NWBIO(_NWBIO, DataIO):
+class NWBIO(DataIO):
     """
     NWB Data handler
     """
-    def __init__(self, **kwargs):
-        mro = self.__class__.__mro__
-        print (mro)
+    def __init__(self, nwb = None):
+        self.nwb = nwb
+        self.nwbfilepath = None
 
-        for ix, superclass in enumerate(mro[1:]):
-            print (superclass)
+        # Metadata
+        self.subject_id = None
+        self.session_id = None
+        
+        def __post_init__(self):
+            # Given: NWB File Path
+            if type(self.nwb) != pynwb.file.NWBFile:
+                self.nwbfilepath = self.nwb
+                self.nwb = None
+
+            # Load Data
+            if self.nwbfilepath and not self.nwb:
+                self.load()
+            self._nwb_get_metadata()
+
+    def load(self):
+        """
+        Loads nwb file with fuzzy matching. If file is already loaded
+        ask the user if they want to relaod. 
+        """
+        # Check if nwbfile already loaded and ask to reload
+        if self.nwb:
+            while True:
+                UI = input (f'NWB file is already loaded. \
+                \n\n This is the current session_id: \t{self.nwb.session_id} \
+                \n This is the new filepath: \t\t{self.nwbfilepath} \
+                \n\n Would you like to reload? (y/n)')
+                if UI == 'y' or UI == 'n':
+                    break
+                else:
+                    print ('Invalid Input: respond y or n')
+            if UI == 'n':
+                print ('NWB file not loaded')
+            elif UI == 'y':
+                self.nwb = load_nwb(self.nwbfilepath)
+                self._nwb_get_metadata()
+                print ('NWB file sucessfully reloaded')
+        # Else just load 
+        else:
+            self.nwb = load_nwb(self.nwbfilepath)
+            self._nwb_get_metadata()
             
-    
+    def _nwb_get_metadata(self):
+        # Populate metadata from NWB file
+        self.subject = self.nwb.subject.subject_id
+        self.session_id = self.nwb.session_id
+
+    def save(self):
+        return super().save()
+
+    def load_external(self):
+        return super().load_external()
+
+    def compute(self):
+        return super().compute()
 

@@ -5,7 +5,7 @@ from neuro.components import *
 
 # -SUBJECT- 
 @dataclass(kw_only=True)
-class _Subject:
+class Subject:
     """
     BaseDataclass for subject level information 
     """
@@ -21,7 +21,7 @@ class _Subject:
     data_folder        : str  = dataclasses.field(default_factory=str)
     recording_location : str  = dataclasses.field(default_factory=str)
     electrodes         : list = dataclasses.field(default_factory=list) #list of electrode objects
-    behavior           : Behavior = None 
+    #behavior           : Behavior = None 
     
 
     # Enforce attribute type on init
@@ -35,11 +35,11 @@ class _Subject:
 
 
 
-class Subject(_Subject):
-    """
-    Class for Subject
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+# class Subject(_Subject):
+#     """
+#     Class for Subject
+#     """
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
 
 
