@@ -21,9 +21,6 @@ class NWBIO(object):
         # Extracted
         msg = 'run self.nwb_get_metadata() to populate'
         self.subject    = msg
-        
-        
-
 
     def nwb_load(self):
         """

@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
+import numpy as np
+
 
 from neuro.components import *
-
 from neuro.components.session import Session 
 
 # -NEURON BASE- 
 @dataclass(kw_only=True)
-class _Neuron:
+class Neuron:
     """
     BaseDataclass for single unit neuron level information
 
@@ -41,17 +42,6 @@ class _Neuron:
     # Data
     spikes : list = field(default_factory=list)
     
-    #def __post_init__():
-    #    super().__init__(**kwargs)
-
-
-
-class Neuron(_Neuron):
-    """
-    Class for Neuron
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     @property
     def spike_count(self):
@@ -64,7 +54,7 @@ class Neuron(_Neuron):
 
 # -- NEURON TYPES --
 @dataclass(kw_only=True)
-class _HeadDirectionNeuron:
+class HeadDirectionNeuron (Neuron):
     
     # HD Data
     hd_occupancy : list = field(default_factory=list, metadata={'info': 'Seconds spent in each bin', 'unit':'seconds'})
@@ -76,12 +66,14 @@ class _HeadDirectionNeuron:
     smooth = True
     windowsize = 23
     
-    
-    #def __post_init__():
-    #    super().__init__(**kwargs) 
+    def compute_occupancy(self):
+            # get ms timepoints in seconds during epochs of interest
+            timepoints = subset_epoch_times(np.arange(np.ceil(session.session_length*1e3))/1e3, self.session.epoch_start_times, self.session.epoch_stop_times)
+            head_directions = compute_head_directions(timepoints, self.hd_times, self.hd_degrees)
+            self.occupancy = compute_head_direction_histogram(head_directions, self.binsize, self.windowsize)
 
 
-class HeadDirectionNeuron(_HeadDirectionNeuron, Neuron):
+class __HeadDirectionNeuron(_HeadDirectionNeuron, Neuron):
     def __init__(self, **kwargs):
         super().__init__(**{k: v for k, v in kwargs.items()
                             if k in _HeadDirectionNeuron.__dataclass_fields__.keys()})
@@ -90,10 +82,6 @@ class HeadDirectionNeuron(_HeadDirectionNeuron, Neuron):
 
         
         
-    def compute_occupancy(self):
-            # get ms timepoints in seconds during epochs of interest
-            timepoints = subset_epoch_times(np.arange(np.ceil(session.session_length*1e3))/1e3, self.session.epoch_start_times, self.session.epoch_stop_times)
-            head_directions = compute_head_directions(timepoints, self.hd_times, self.hd_degrees)
-            self.occupancy = compute_head_direction_histogram(head_directions, self.binsize, self.windowsize)
+    
             
      
