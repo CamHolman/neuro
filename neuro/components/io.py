@@ -49,22 +49,25 @@ class NWBIO(DataIO):
     NWB Data handler
     """
     def __init__(self, nwb = None):
+        
+        # -- Atributes --
         self.nwb = nwb
         self.nwbfilepath = None
 
         # Metadata
         self.subject_id = None
-        self.session_id = None
+        self.session_id = None        
         
-        def __post_init__(self):
-            # Given: NWB File Path
-            if type(self.nwb) != pynwb.file.NWBFile:
-                self.nwbfilepath = self.nwb
-                self.nwb = None
+        # -- Post -- 
+        # Given: NWB File Path
+        if type(self.nwb) != pynwb.file.NWBFile:
+            self.nwbfilepath = self.nwb
+            self.nwb = None
 
-            # Load Data
-            if self.nwbfilepath and not self.nwb:
-                self.load()
+        # Load Data
+        if self.nwbfilepath and not self.nwb:
+            self.load()
+        else:
             self._nwb_get_metadata()
 
     def load(self):
@@ -96,7 +99,8 @@ class NWBIO(DataIO):
             
     def _nwb_get_metadata(self):
         # Populate metadata from NWB file
-        self.subject = self.nwb.subject.subject_id
+        print ('getting metadata')
+        self.subject_id = self.nwb.subject.subject_id
         self.session_id = self.nwb.session_id
 
     def save(self):

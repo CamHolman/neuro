@@ -2,10 +2,10 @@
 from dataclasses import dataclass,field
 
 
-@dataclass(kw_only=True)
-class Task:
-    task_name : str = ''
-    task_version : float = 0.0
+# @dataclass(kw_only=True)
+# class Task:
+#     task_name : str = ''
+#     task_version : float = 0.0
 
 
 @dataclass(kw_only=True)
@@ -31,11 +31,15 @@ class Session:
 
         
 @dataclass(kw_only=True)
-class TreasureHuntSession(Task, Session):
+class TreasureHuntSession(Session):
     """
     Class to represent each session of treasure hunt...
     """
+    #task_name : str = 'Treasure Hunt'
+    #task_version : float = field(default= 1.0)
+    #blank : str = 'wnweofin'
 
+    # Treasure Hunt Epochs
     navigation_start_times : list = field(default_factory=list, metadata={'info': 'Start times of navigation epochs', 'units' : 'seconds'})
     navigation_stop_times : list = field(default_factory=list, metadata={'info': 'Stop times of navigation epochs', 'units' : 'seconds' })
 

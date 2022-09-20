@@ -121,7 +121,7 @@ def compute_epochs_firing_rates_over_time (spikes, epoch_start_times, epoch_stop
 
         #spikes_epoch = restrict_range(spikes, epoch_start_times[ix], epoch_stop_times[ix])
         
-        spikes_epoch = subset_epoch_events(spikes, [epoch_start_times[ix]])
+        spikes_epoch = subset_epoch_events(spikes, epoch_start_times[ix], epoch_stop_times[ix])
         
         FRs, times =  compute_firing_rate_over_time(spikes_epoch, epoch_start_times[ix], epoch_stop_times[ix], window=1, step=0.1)
         if len(times) > len(fr_times):
@@ -170,6 +170,9 @@ def nwb_compute_navigation_firing_rates_over_time (nwbfile, unit_ix, window=1, s
 #######################################
 # FR over time normalized to trial len
 #######################################
+
+def compute_firing_rate_over_time_normalized_to_trial_length():
+    pass
 
 def nwb_norm_fr_over_time(nwbfile, unit_ix, num_bins = 10):
     """
@@ -231,10 +234,11 @@ def nwb_compute_navigation_mean_firing_rate(nwbfile, unit_ix, epoch_ixs = 'all' 
 # Plot
 ############
 
-def plot_firing_rate_over_time_over_time(FRs, mean_FR, step = 0.1, axs=None, unit_ix = '', ci = 95):
+def plot_firing_rate_over_time_over_time(FRs, mean_FR = 0.0, step = 0.1, axs=None, unit_ix = '', ci = 95):
     """
     Plot mean FRs with bootstrapped 95ci and individual trial lengths
     """
+    # Get steps 
     df = pd.DataFrame(FRs).melt()
     df['variable'] = df['variable'] * step
     

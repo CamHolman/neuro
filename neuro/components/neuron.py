@@ -1,13 +1,14 @@
 from dataclasses import dataclass, field
 import numpy as np
 
-from neuro.utils.subset_data import data, subset_epoch_data, subset_epoch_events
+from neuro.utils.subset_data import subset_epoch_data, subset_epoch_events
 from neuro.components.neuron_utils import compute_firing_rate_over_time, compute_epochs_firing_rates_over_time
 
 from neuro.components import *
 from neuro.components.session import Session 
 from neuro.components.subject import Subject
 from neuro.components.io import DataIO
+
 
 
 # -NEURON BASE- 
@@ -57,10 +58,11 @@ class Neuron:
 
     @property
     def firing_rate(self, start = None, stop = None):
-        return self.spike_count / self.session.recording_length 
+        return self.spike_count / self.session.session_length 
 
     @property
-    def firing_rate_over_time(self, start_time = None, stop_time = None, window = 1, step = 0.1):
+    def firing_rate_over_time(self, spikes = None, start_time = None, stop_time = None, window = 1, step = 0.1):
+        spikes = self.spikes if spikes is None else spikes
         start_time = self.session.session_start_time if start_time is None else start_time
         stop_time = self.session.session_stop_time if stop_time is None else stop_time
         frs, times = compute_firing_rate_over_time(self.spikes, start_time, stop_time, window, step)
@@ -69,10 +71,10 @@ class Neuron:
     
     # -- Epoch Level --
     @property 
-    def epoch_spikes(self, epoch_start_times = None, epoch_stop_times = None):
-        if not epoch_start_times or epoch_stop_times:
-            epoch_start_times = self.session.epoch_start_times
-            epoch_stop_times = self.session.epoch_stop_times
+    def epoch_spikes(self, spikes = None, epoch_start_times = None, epoch_stop_times = None):
+        spikes = self.spikes if spikes is None else spikes
+        epoch_start_times = self.session.epoch_start_times if epoch_start_times is None else epoch_start_times
+        epoch_stop_times = self.session.epoch_stop_times if epoch_stop_times is None else epoch_stop_times 
         return subset_epoch_events(self.spikes, epoch_start_times, epoch_stop_times)
 
     @property
@@ -84,7 +86,23 @@ class Neuron:
         return self.epoch_spike_count / self.session.epoch_length
 
     @property 
-    def epoch_firing_rate_over_time(self):
+    def epoch_firing_rate_over_time(self, spikes = None, epoch_start_times = None, epoch_stop_times = None, 
+                                    window = 1, step = 0.1, return_means = False):
+        spikes = self.spikes if spikes is None else spikes
+        epoch_start_times = self.session.epoch_start_times if epoch_start_times is None else epoch_start_times
+        epoch_stop_times = self.session.epoch_stop_times if epoch_stop_times is None else epoch_stop_times
+        if return_means:
+            frs, fr_means = compute_epochs_firing_rates_over_time(spikes, epoch_start_times, epoch_stop_times, window, step, True)
+            return frs, fr_means
+        else:
+            frs = compute_epochs_firing_rates_over_time(spikes, epoch_start_times, epoch_stop_times, window, step, False)
+            return frs 
+    
+    
+    
+        
+        
+
 
     
     

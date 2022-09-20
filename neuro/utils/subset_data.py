@@ -7,7 +7,8 @@ def subset_epoch_events(event_times, epoch_start_times, epoch_stop_times):
     ex. all spikes within trial epochs, all position times in navigation epoch
     """
     # Convert float/int times to list 
-    if type(epoch_start_times) in [float, int] or type(epoch_stop_times) in [float, int]:
+    convert_types = [int, float, np.float64]
+    if type(epoch_start_times) in convert_types or type(epoch_stop_times) in convert_types:
         epoch_start_times = [epoch_start_times]
         epoch_stop_times  = [epoch_stop_times]
     
