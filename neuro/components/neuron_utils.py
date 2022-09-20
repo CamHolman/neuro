@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+from neuro.utils.subset_data import subset_epoch_events
 #from analyzeth.cmh.utils import *
 #from spiketools.utils import restrict_range
 
@@ -11,7 +13,7 @@ import seaborn as sns
 # FRs over time
 ####################
 
-def firing_rate_over_time(
+def compute_firing_rate_over_time(
         spikes,       #sec  
         start_time = None,
         stop_time = None, 
@@ -115,8 +117,13 @@ def compute_epochs_firing_rates_over_time (spikes, epoch_start_times, epoch_stop
     num_epochs = len(epoch_start_times)
     for ix in range(num_epochs):
         len_epoch = epoch_stop_times[ix] - epoch_start_times[ix]
-        spikes_epoch = restrict_range(spikes, epoch_start_times[ix], epoch_stop_times[ix])
-        FRs, times =  firing_rate_over_time(spikes_epoch, epoch_start_times[ix], epoch_stop_times[ix], window=1, step=0.1)
+        
+
+        #spikes_epoch = restrict_range(spikes, epoch_start_times[ix], epoch_stop_times[ix])
+        
+        spikes_epoch = subset_epoch_events(spikes, [epoch_start_times[ix]])
+        
+        FRs, times =  compute_firing_rate_over_time(spikes_epoch, epoch_start_times[ix], epoch_stop_times[ix], window=1, step=0.1)
         if len(times) > len(fr_times):
             fr_times = times
         firing_rates_over_time.append(FRs)
