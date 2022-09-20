@@ -16,11 +16,15 @@ class Subject:
     age   : int = dataclasses.field(default_factory=int)
     sex   : str = dataclasses.field(default_factory=str)
     notes : str = dataclasses.field(default_factory=str)
+    recording_location : str  = dataclasses.field(default_factory=str)
+
 
     # Data 
-    data_folder        : str  = dataclasses.field(default_factory=str)
-    recording_location : str  = dataclasses.field(default_factory=str)
-    electrodes         : list = dataclasses.field(default_factory=list) #list of electrode objects
+    data_folder : str = dataclasses.field(default_factory=str)
+    
+
+    # Relations
+    electrodes : list = dataclasses.field(default_factory=list)  #list of electrode objects
     #behavior           : Behavior = None 
     
 

@@ -34,13 +34,13 @@ class DataIO:
 
 # -- NWB -- 
 
-import pynwb
+# import pynwb
 
-@dataclass(kw_only = True)
-class _NWBIO:
+# @dataclass(kw_only = True)
+# class _NWBIO:
     
-    nwb : pynwb.file.NWBFile = None
-    filepath : str = ''
+#     nwb : pynwb.file.NWBFile = None
+#     filepath : str = ''
     
 
 

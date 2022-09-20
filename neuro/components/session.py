@@ -4,8 +4,8 @@ from dataclasses import dataclass,field
 
 @dataclass(kw_only=True)
 class Task:
-    name: str = ''
-    version: float = 0.0
+    task_name : str = ''
+    task_version : float = 0.0
 
 
 @dataclass(kw_only=True)
@@ -15,13 +15,21 @@ class Session:
     session_stop_time : float = 0.0
     session_length : float = 0.0
     
-    epoch_start_times : list = field(default_factory=list)
-    epoch_stop_times : list = field(default_factory=list)
-    
+    epoch_start_times : list  = field(default_factory=list)
+    epoch_stop_times  : list  = field(default_factory=list)
+
+
     def __post_init__(self):
         self.session_length = self.session_stop_time - self.session_start_time
-    
-    
+
+    @property
+    def epoch_lengths(self):
+        return self.epoch_stop_times - self.epoch_start_times
+    @property
+    def epoch_length(self):
+        return sum(self.epoch_lengths)
+
+        
 @dataclass(kw_only=True)
 class TreasureHuntSession(Task, Session):
     """
@@ -33,6 +41,10 @@ class TreasureHuntSession(Task, Session):
 
 
     player_position : list = field(default_factory=list)
+
+    def __post_init__(self):
+        self.load_navigation_epochs()
+        super().__post_init__()
 
     
     def load_navigation_epochs(self):
