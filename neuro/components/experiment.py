@@ -85,12 +85,15 @@ class nwbSingleUnitExperiment(nwbExperiment):
         # Components
         self.neuron = None
 
+        # Options
+        self.running_single = True
+
     def populate(self):
         super().populate()
         self.neuron = Neuron(
             # ID
             id = f'{self.subject.id}__{self.session.id}__unit{self.unit_ix}',
-            #ix = self.unit_ix,
+            ix = self.unit_ix,
             
             # Data
             spikes = self.io.nwb.units.get_unit_spike_times(self.unit_ix),
@@ -101,6 +104,54 @@ class nwbSingleUnitExperiment(nwbExperiment):
             subject = self.subject,
             session = self.session
         )
+
+class nwbMultiUnitExperiment(nwbExperiment):
+    def __init__(self, id = None, nwb = None):
+        super().__init__(id, nwb)
+
+        # Data
+        self.neuron_count = len (self.io.nwb.units)
+
+        # Components
+        self.neurons = None
+
+        # Options
+        self.restrict_unit_ix_range = True
+        self.unit_ix_range = [0,10] 
+
+    def populate(self):
+        # Pupulate session level data
+        super().populate()
+
+    def collect_neurons(self):
+        # Set Range
+        if self.restrict_unit_ix_range:
+            uix_range = range(self.unit_ix_range[0], self.unit_ix_range[1])
+        else:
+            uix_range = range(self.neuron_count)
+
+        # Collect Neurons
+        for uix in uix_range:
+            neuron = Neuron(
+                id = f'{self.subject.id}__{self.session.id}__unit{self.unit_ix}',
+                ix = uix,
+                spikes = self.io.nwb.units.get_unit_spike_times(uix)
+                exp = self,
+                io = self.io,
+                subject = self.subject,
+                session = self.session
+            )
+            self.neurons.append(neuron)
+        
+class SubjectEEGExperiment(Experiment):
+    def __init__(self, subject, task, montage):
+        pass
+
+    
+
+
+
+
 
 
 
