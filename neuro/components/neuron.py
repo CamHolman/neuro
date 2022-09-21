@@ -8,6 +8,7 @@ from neuro.components import *
 from neuro.components.session import Session 
 from neuro.components.subject import Subject
 from neuro.components.io import DataIO
+from neuro.components.experiment import Experiment
 
 
 
@@ -43,13 +44,14 @@ class Neuron:
     spikes : list = field(default_factory=list)
     
     # Relations
-    io      : DataIO  = None
-    subject : Subject = None
-    session : Session = None
+    exp     : Experiment = None
+    io      : DataIO     = None
+    subject : Subject    = None
+    session : Session    = None
     
-    #recording : NeuralRecording  = None
-    #electrode : Electrode        = None
-    #contact   : ElectrodeContact = None
+        #recording : NeuralRecording  = None
+        #electrode : Electrode        = None
+        #contact   : ElectrodeContact = None
 
     # -- Session Level -- 
     @property
@@ -99,8 +101,22 @@ class Neuron:
             return frs 
     
     
+    ###################
+    # Neuron Analyses
+    ###################
+
+@dataclass(kw_only=True)
+class NeuronAnalysis(Neuron):
+    pass
+
+
+
+#class NeuronAnalysis(Neuron):
+#    def __init__(self, anaid = 'none', **kwargs):
+#        super.__init__(**kwargs)
+#        self.anaid = anaid
     
-        
+
         
 
 
