@@ -325,7 +325,7 @@ class _HeadDirectionNeuron:
             self.compute_occupancy()
 
     def compute_occupancy(self):
-
+        pass
 
 
 class HeadDirectionNeuron(_HeadDirectionNeuron, Neuron, Session):

@@ -1,7 +1,12 @@
 
-from neuro.components import * 
 import neuro
+#from neuro.components import * 
 
+from neuro.components.io import NWBIO
+from neuro.components.subject import Subject 
+from neuro.components.session import Session, TreasureHuntSession
+from neuro.components.neuron import Neuron
+from neuro.components.behavior import Behavior, NavigationBehavior, HeadDirectionBehavior, MemoryBehavior
 
 
 class Experiment:
@@ -31,6 +36,7 @@ class nwbExperiment(Experiment):
         # Components 
         self.subject = None
         self.session = None
+        self.behavior = None
 
     def populate(self):
         self.subject = Subject(id = self.io.subject_id)
@@ -53,7 +59,22 @@ class nwbExperiment(Experiment):
                 epoch_start_times = self.io.nwb.trials['navigation_start'][:],
                 epoch_stop_times = self.io.nwb.trials['navigation_stop'][:]
             )
-        
+
+        # Behavior
+        self.behavior = Behavior(
+            navigation = NavigationBehavior(
+                xy = self.io.nwb.acquisition['position']['player_position'].data[:],
+                times = self.io.nwb.acquisition['position']['player_position'].timestamps[:]
+            ),
+            head_direciton = HeadDirectionBehavior(
+                degrees = self.io.nwb.acquisition['heading']['direction'].data[:],
+                times = self.io.nwb.acquisition['heading']['direction'].timestamps[:]
+            ),
+            memory = None
+        )
+
+
+
 
 class nwbSingleUnitExperiment(nwbExperiment):
     def __init__(self, id = None, nwb = None, unit_ix = None):
@@ -68,18 +89,19 @@ class nwbSingleUnitExperiment(nwbExperiment):
         super().populate()
         self.neuron = Neuron(
             # ID
-            id = self.subject.id + self.session.id + f'__unit{self.unit_ix}',
-            ix = self.unit_ix,
+            id = f'{self.subject.id}__{self.session.id}__unit{self.unit_ix}',
+            #ix = self.unit_ix,
             
             # Data
             spikes = self.io.nwb.units.get_unit_spike_times(self.unit_ix),
             
             # Relations
+            exp = self,
             io = self.io,
             subject = self.subject,
             session = self.session
         )
 
-    
+
 
 
