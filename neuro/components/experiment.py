@@ -135,7 +135,7 @@ class nwbMultiUnitExperiment(nwbExperiment):
             neuron = Neuron(
                 id = f'{self.subject.id}__{self.session.id}__unit{self.unit_ix}',
                 ix = uix,
-                spikes = self.io.nwb.units.get_unit_spike_times(uix)
+                spikes = self.io.nwb.units.get_unit_spike_times(uix),
                 exp = self,
                 io = self.io,
                 subject = self.subject,
@@ -150,7 +150,21 @@ class SubjectEEGExperiment(Experiment):
     
 
 
+class HeadDirectionAnalysis:
+    def __init__(self, IO, Neuron, Session, HeadDirectionBehavior):
+        self.io = IO
+        self.neuron = Neuron
+        self.session = Session
+        self.headdirection = HeadDirectionBehavior
+        
+        self.occupancy = self.headdirection.occupancy
 
+    def compute_occupancy(self):
+        pass
+
+    def run(self):
+        pass
+        
 
 
 

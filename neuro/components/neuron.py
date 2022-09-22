@@ -42,6 +42,8 @@ class Neuron:
     
     # Data
     spikes : list = field(default_factory=list)
+    epoch_start_times : list = field(default_factory=list) 
+    epoch_stop_times : list = field(default_factory=list)
     
     # Relations
     exp     : Experiment = None
