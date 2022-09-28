@@ -1,3 +1,0 @@
-"""
-Class object for neron
-"""

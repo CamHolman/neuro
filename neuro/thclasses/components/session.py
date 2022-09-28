@@ -46,14 +46,6 @@ class TreasureHuntSession(Session):
     navigation_start_times : list = field(default_factory=list, metadata={'info': 'Start times of navigation epochs', 'units' : 'seconds'})
     navigation_stop_times : list = field(default_factory=list, metadata={'info': 'Stop times of navigation epochs', 'units' : 'seconds' })
 
-    # Behavior
-    #player_position : list = field(default_factory=list)
-    #head_direction : 
-
-
-    
-
-
     def __post_init__(self):
         self.load_navigation_epochs()
         super().__post_init__()
