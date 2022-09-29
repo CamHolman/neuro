@@ -1,4 +1,4 @@
 #from .io import *
 #from .neuron import *
 
-from . import components
+#from . import components
