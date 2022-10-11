@@ -2,7 +2,7 @@ from cmlreaders import CMLReader, get_data_index
 import pandas as pd
 import numpy as np
 import os 
-from glob import glob  
+from glob import glob 
 from joblib import Parallel, delayed
 
 
@@ -25,11 +25,6 @@ class RAMSubjectData:
         # Signal
         self.eeg = None
 
-    def load_info(self):
-        self.load_events_info(as_df=True, remove_no_eeg = True)
-        self.load_electrode_info(bipolar = True)
-        self.load_stimulation_info(on_off = 'OFF')
-
     def load_events_info(self, as_df = True, remove_no_eeg = True):
         print(f'Loading events for subject {self.subject}, task {self.task}, montage {self.montage}')
         self.events = load_events_info(self.subject, self.task, self.montage, as_df, remove_no_eeg)
@@ -49,8 +44,7 @@ class RAMSubjectData:
         from neuro.stim.ram_loaders import load_eeg
         self.eeg = load_eeg (self.task,self.subject, 0, self.electrodes)
          
-
-
+        
         
     
     def load_events_eeg(self):
@@ -76,7 +70,7 @@ class RAMGroupData:
         self.subject_errors = None
 
         # Options
-
+        
     def load_subjects(self):
         # Parallelize load
         def load_subject(task, subject_id, montage_id):
@@ -129,7 +123,7 @@ class RAMGroupData:
 #---------------------
 # RAM Load Functions
 
-# Get the R1 index dataframe 
+# get the r1 dataframe on import so we don't have to keep doing it
 try:
     r1_data = get_data_index("r1")
 except KeyError:
