@@ -1,12 +1,25 @@
-from cmlreaders import CMLReader, get_data_index
+# General
 import pandas as pd
 import numpy as np
 import os 
 from glob import glob  
 from joblib import Parallel, delayed
 
+# Penn Mem
+from cmlreaders import CMLReader, get_data_index
+from ptsa.data.filters import ButterworthFilter
+from ptsa.data.filters import MorletWaveletFilter
+from ptsa.data.filters import ResampleFilter
+from ptsa.data.timeseries import TimeSeries
 
+def load_subject_data(task, isubject):
+    subjects = load_subject_ids(task)
+    idsubject = subjects.iloc[isubject]['subject']
+    imontage = subjects.iloc[isubject]['montage']
 
+    subject = RAMSubjectData(task, idsubject, imontage)
+    return subject
+    
 class RAMSubjectData:
     """
     Class for loading RAM subject data to analyze PS3 theta burst stimulation
@@ -45,16 +58,26 @@ class RAMSubjectData:
         self.stimulation = load_stimulation_info(self.events, self.electrodes, on_off)
         print('Done')
 
-    def load_eeg(self):
-        from neuro.stim.ram_loaders import load_eeg
-        self.eeg = load_eeg (self.task,self.subject, 0, self.electrodes)
-         
-
-
-        
+    def load_raw_eeg(self):
+        self.eeg = load_raw_eeg (self.task,self.subject, 0, self.electrodes)
     
-    def load_events_eeg(self):
-        pass
+
+    def load_events_eeg(self, events = None, rel_start_ms = None, rel_stop_ms=None, buf_ms=0, elec_scheme=None, noise_freq=[58., 62.],
+             resample_freq=None, pass_band=None, use_mirror_buf=False, demean=False, do_average_ref=False):
+        
+        if events is None:
+            events = self.events
+        if rel_start_ms is None:
+            rel_start_ms = 500
+        if rel_stop_ms is None:
+            rel_stop_ms = 1500
+        if elec_scheme is None:
+            elec_scheme = self.electrodes
+
+        self.eeg = load_events_eeg(events, rel_start_ms, rel_stop_ms, buf_ms, elec_scheme, noise_freq,
+             resample_freq, pass_band, use_mirror_buf, demean, do_average_ref)
+
+
 
 class RAMGroupData:
     def __init__(self, task, subject_ids = None, montage_ids = None, subjects_and_montages = None):
@@ -118,10 +141,10 @@ class RAMGroupData:
         subject_stim_dfs = []
         for s in self.subjects:
             subject_id = s.subject
-            stim_info = s.electrodes.copy(deep=False)
+            stim_info = s.stimulation.copy(deep=False)
             stim_info['subject'] = subject_id
             subject_stim_dfs.append(stim_info)
-        self.electrodes = pd.concat(subject_stim_dfs)
+        self.stimulation = pd.concat(subject_stim_dfs)
 
     
             
@@ -264,6 +287,8 @@ def load_stimulation_info(events_df, electrodes_df, on_off = 'OFF'):
                 loc = electrode[colname].values[0]
                 if type(loc) == str:
                     locs.append(loc)
+        locs = tuple(locs)
+        
         x, y, z = electrode['avg.x'].values[0], electrode['avg.y'].values[0], electrode['avg.z'].values[0]                   
         hemi = 'left' if x<0 else 'right'
 
@@ -467,3 +492,159 @@ def load_electrode_info(subject, montage=0, bipolar=True):
             elec_df['label'] = elec_df['contact'].apply(lambda x: 'elec_' + str(x))
 
     return elec_df
+
+
+## -- EEG LOADERS -- 
+
+def load_raw_eeg(task, subject, session, elec_scheme):
+    """
+    Returns MNE... 
+    """
+
+    return CMLReader (subject = subject, experiment = task, session = session).load_eeg(scheme = elec_scheme).to_ptsa()
+
+
+def load_events_eeg(events, rel_start_ms, rel_stop_ms, buf_ms=0, elec_scheme=None, noise_freq=[58., 62.],
+             resample_freq=None, pass_band=None, use_mirror_buf=False, demean=False, do_average_ref=False):
+    """
+    Returns an EEG TimeSeries object.
+
+    Parameters
+    ----------
+    events: pandas.DataFrame
+        An events dataframe that contains eegoffset and eegfile fields
+    rel_start_ms: int
+        Initial time (in ms), relative to the onset of each event
+    rel_stop_ms: int
+        End time (in ms), relative to the onset of each event
+    buf_ms:
+        Amount of time (in ms) of buffer to add to both the begining and end of the time interval
+    elec_scheme: pandas.DataFrame
+        A dataframe of electrode information, returned by load_elec_info(). If the column 'contact' is in the dataframe,
+        monopolar electrodes will be loads. If the columns 'contact_1' and 'contact_2' are in the df, bipolar will be
+        loaded. You may pass in a subset of rows to only load data for electrodes in those rows.
+
+        If you do not enter an elec_scheme, all monopolar channels will be loaded (but they will not be labeled with
+        correct channel tags). Entering a scheme is recommended.
+    noise_freq: list
+        Stop filter will be applied to the given range. Default=(58. 62)
+    resample_freq: float
+        Sampling rate to resample to after loading eeg.
+    pass_band: list
+        If given, the eeg will be band pass filtered in the given range.
+    use_mirror_buf: bool
+        If True, the buffer will be data taken from within the rel_start_ms to rel_stop_ms interval,
+        mirrored and prepended and appended to the timeseries. If False, data outside the rel_start_ms and rel_stop_ms
+        interval will be read.
+    demean: bool
+        If True, will subject the mean voltage between rel_start_ms and rel_stop_ms from each channel
+    do_average_ref: bool
+        If True, will compute the average reference based on the mean voltage across channels
+
+    Returns
+    -------
+    TimeSeries
+        EEG timeseries object with dimensions channels x events x time (or bipolar_pairs x events x time)
+
+        NOTE: The EEG data is returned with time buffer included. If you included a buffer and want to remove it,
+              you may use the .remove_buffer() method. EXTRA NOTE: INPUT SECONDS FOR REMOVING BUFFER, NOT MS!!
+
+    """
+
+    # check if monopolar is possible for this subject
+    if 'contact' in elec_scheme:
+        eegfile = np.unique(events.eegfile)[0]
+        if os.path.splitext(eegfile)[1] == '.h5':
+            eegfile = f'/protocols/r1/subjects/{events.iloc[0].subject}/experiments/{events.iloc[0].experiment}/sessions/{events.iloc[0].session}/ephys/current_processed/noreref/{eegfile}'
+            with h5py.File(eegfile, 'r') as f:
+                if not np.array(f['monopolar_possible'])[0] == 1:
+                    print('Monopolar referencing not possible for {}'.format(events.iloc[0].subject))
+                    return
+
+    # add buffer is using
+    if (buf_ms is not None) and not use_mirror_buf:
+        actual_start = rel_start_ms - buf_ms
+        actual_stop = rel_stop_ms + buf_ms
+    else:
+        actual_start = rel_start_ms
+        actual_stop = rel_stop_ms
+
+    # load eeg
+    eeg = CMLReader(subject=events.iloc[0].subject).load_eeg(events, rel_start=actual_start, rel_stop=actual_stop,
+                                                             scheme=elec_scheme).to_ptsa()
+
+    # now auto cast to float32 to help with memory issues with high sample rate data
+    eeg.data = eeg.data.astype('float32')
+
+    # baseline correct subracting the mean within the baseline time range
+    if demean:
+        eeg = eeg.baseline_corrected([rel_start_ms, rel_stop_ms])
+
+    # compute average reference by subracting the mean across channels
+    if do_average_ref:
+        eeg = eeg - eeg.mean(dim='channel')
+
+    # add mirror buffer if using. PTSA is expecting this to be in seconds.
+    if use_mirror_buf:
+        eeg = eeg.add_mirror_buffer(buf_ms / 1000.)
+
+    # filter line noise
+    if noise_freq is not None:
+        #if isinstance(noise_freq[0], float):
+        #    noise_freq = [noise_freq]
+
+        b_filter = ButterworthFilter(freq_range = noise_freq, filt_type ='stop', order = 4)
+        for this_chan in range(eeg.shape[1]):
+            this_eeg = eeg[:, this_chan:this_chan+1]
+            filtered_eeg = b_filter.filter(timeseries = this_eeg)
+            eeg[:, this_chan:this_chan+1] = filtered_eeg
+                
+
+    # resample if desired. Note: can be a bit slow especially if have a lot of eeg data
+    if resample_freq is not None:
+        eeg_resamp = []
+        for this_chan in range(eeg.shape[1]):
+            r_filter = ResampleFilter(eeg[:, this_chan:this_chan + 1], resample_freq)
+            eeg_resamp.append(r_filter.filter())
+        coords = {x: eeg[x] for x in eeg.coords.keys()}
+        coords['time'] = eeg_resamp[0]['time']
+        coords['samplerate'] = resample_freq
+        dims = eeg.dims
+        eeg = TimeSeries.create(np.concatenate(eeg_resamp, axis=1), resample_freq, coords=coords,
+                                dims=dims)
+
+    # do band pass if desired.
+    if pass_band is not None:
+        eeg = band_pass_eeg(eeg, pass_band)
+
+    # reorder dims to make events first
+    eeg = make_events_first_dim(eeg)
+    return eeg
+
+
+def make_events_first_dim(ts, event_dim_str='event'):
+    """
+    Transposes a TimeSeries object to have the events dimension first. Returns transposed object.
+
+    Parameters
+    ----------
+    ts: TimeSeries
+        A PTSA TimeSeries object
+    event_dim_str: str
+        the name of the event dimension
+
+    Returns
+    -------
+    TimeSeries
+        A transposed version of the orginal timeseries
+    """
+
+    # if events is already the first dim, do nothing
+    if ts.dims[0] == event_dim_str:
+        return ts
+
+    # make sure events is the first dim because I think it is better that way
+    ev_dim = np.where(np.array(ts.dims) == event_dim_str)[0]
+    new_dim_order = np.hstack([ev_dim, np.setdiff1d(range(ts.ndim), ev_dim)])
+    ts = ts.transpose(*np.array(ts.dims)[new_dim_order])
+    return ts
