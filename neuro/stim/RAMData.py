@@ -33,14 +33,16 @@ class RAMSubjectData:
         # Data
         self.events      = None
         self.electrodes  = None
+        self.electrodes_bipolar = None
         self.stimulation = None
 
         # Signal
         self.eeg = None
-
-    def load_info(self):
+    
+    def load_metadata(self):
         self.load_events_info(as_df=True, remove_no_eeg = True)
-        self.load_electrode_info(bipolar = True)
+        self.load_electrode_info(bipolar = False)
+        self.load_electrode_bipolar_info()
         self.load_stimulation_info(on_off = 'OFF')
 
     def load_events_info(self, as_df = True, remove_no_eeg = True):
@@ -48,27 +50,32 @@ class RAMSubjectData:
         self.events = load_events_info(self.subject, self.task, self.montage, as_df, remove_no_eeg)
         print ('Done')
 
-    def load_electrode_info(self, bipolar = True):
+    def stimulation_events(self):
+        pass
+
+    def load_electrode_info(self, bipolar = False):
         print(f'Loading electrodes for subject {self.subject}, task {self.task}, montage {self.montage}')
         self.electrodes = load_electrode_info(self.subject, self.montage, bipolar)
         print ('Done')
 
+    def load_electrode_bipolar_info(self):
+        self.electrodes_bipolar = load_electrode_info(self.subject, self.montage, bipolar=True)
+
     def load_stimulation_info(self, on_off = 'OFF'):
         print(f'Loading stimulation info for subject {self.subject}, task {self.task}, montage {self.montage}')
-        self.stimulation = load_stimulation_info(self.events, self.electrodes, on_off)
+        self.stimulation = load_stimulation_info(self.events, self.electrodes_bipolar, on_off)
         print('Done')
 
     def load_raw_eeg(self):
         self.eeg = load_raw_eeg (self.task,self.subject, 0, self.electrodes)
     
-
     def load_events_eeg(self, events = None, rel_start_ms = None, rel_stop_ms=None, buf_ms=0, elec_scheme=None, noise_freq=[58., 62.],
              resample_freq=None, pass_band=None, use_mirror_buf=False, demean=False, do_average_ref=False):
         
         if events is None:
             events = self.events
         if rel_start_ms is None:
-            rel_start_ms = 500
+            rel_start_ms = -500
         if rel_stop_ms is None:
             rel_stop_ms = 1500
         if elec_scheme is None:
@@ -77,6 +84,12 @@ class RAMSubjectData:
         self.eeg = load_events_eeg(events, rel_start_ms, rel_stop_ms, buf_ms, elec_scheme, noise_freq,
              resample_freq, pass_band, use_mirror_buf, demean, do_average_ref)
 
+def load_ram_group_data(task):
+    """
+    Create RAMGroupData object for task
+    """
+    subjects = load_subject_ids(task)
+    return RAMGroupData(task, subjects_and_montages=subjects)
 
 
 class RAMGroupData:
@@ -288,7 +301,7 @@ def load_stimulation_info(events_df, electrodes_df, on_off = 'OFF'):
                 if type(loc) == str:
                     locs.append(loc)
         locs = tuple(locs)
-        
+
         x, y, z = electrode['avg.x'].values[0], electrode['avg.y'].values[0], electrode['avg.z'].values[0]                   
         hemi = 'left' if x<0 else 'right'
 
@@ -320,7 +333,7 @@ def load_stimulation_info(events_df, electrodes_df, on_off = 'OFF'):
 
 
 
-def load_electrode_info(subject, montage=0, bipolar=True):
+def load_electrode_info(subject, montage=0, bipolar=False):
     """
     Loads electrode info for subject from CML
     original author: Jonathan Miller
@@ -648,3 +661,171 @@ def make_events_first_dim(ts, event_dim_str='event'):
     new_dim_order = np.hstack([ev_dim, np.setdiff1d(range(ts.ndim), ev_dim)])
     ts = ts.transpose(*np.array(ts.dims)[new_dim_order])
     return ts
+
+
+def clean_electrodes(elec_info, elec_column1='stein.region', elec_column2='ind.region',
+                                 x_coord_column='ind.x', roi_dict=None):
+        """
+
+        Given that we often want to look at effecfs based on brain region, this will take a subject's electrode info
+        and bin it into broad ROIs based on lobe and hemisphere. In the project's terminology, `elec_column1` should
+        usually be the 'loc_tag' information.
+
+        Parameters
+        ----------
+        elec_column1: str
+            DataFrame column to use for localization info.
+        elec_column2: str
+            Additional secondary DataFrame column to use.
+        x_coord_column: str
+            Column specifying the x-coordinate of each electrode. Used to determine left vs right hemisphere.
+            Positive values are right hemisphere.
+        roi_dict: dict
+            A mapping of elec_column1/elec_column2 values to broader ROIs. If not given, the default will be used:
+
+            {'Hipp': ['Left CA1', 'Left CA2', 'Left CA3', 'Left DG', 'Left Sub', 'Right CA1', 'Right CA2',
+                                 'Right CA3', 'Right DG', 'Right Sub'],
+             'MTL': ['Left PRC', 'Right PRC', 'Right EC', 'Right PHC', 'Left EC', 'Left PHC'],
+             'Frontal': ['parsopercularis', 'parsorbitalis', 'parstriangularis', 'caudalmiddlefrontal',
+                                    'rostralmiddlefrontal', 'superiorfrontal'],
+            'Temporal': ['superiortemporal', 'middletemporal', 'inferiortemporal'],
+            'Parietal': ['inferiorparietal', 'supramarginal', 'superiorparietal', 'precuneus'],
+            'Occipital' ['lateraloccipital', 'lingual', 'cuneus', 'pericalcarine']}
+
+
+        Returns
+        -------
+        A pandas.DataFrame with columns 'region' and 'hemi'.
+
+        """
+
+        # Region Labels
+        rls = [
+            'stein.region',
+            'ind.region',
+            'avg.region',
+            'mni.region',
+            'tal.region',
+            'vox.region',
+            'wb.region',
+            'das.region'
+        ]
+        
+        # smoosh the columns together, with the first column taking precedence
+        regions = elec_info[rls[0]].fillna(
+            elec_info[rls[1]]).fillna(
+            elec_info[rls[2]]).fillna(
+            elec_info[rls[3]]).fillna(
+            elec_info[rls[4]]).fillna(
+            elec_info[rls[5]]).fillna(
+            elec_info[rls[6]]).fillna(
+            elec_info[rls[7]]).fillna(
+            value='')
+
+        # if no dictionary is providing, use this
+        if roi_dict is None:
+            roi_dict = {'Hipp': ['Left CA1', 'Left CA2', 'Left CA3', 'Right CA1', 'Right CA2',
+                                 'Right CA3'],
+                        'DG': ['Left DG', 'Right DG'],
+                        'Sub': ['Left Sub', 'Right Sub'],
+                        'EC': ['Right EC', 'Left EC'],
+                        'HippFormation': ['Left CA1', 'Left CA2', 'Left CA3', 'Right CA1', 'Right CA2',
+                                          'Right CA3', 'Left DG', 'Right DG', 'Left Sub', 'Right Sub'],
+                        'MTL': ['Left PRC', 'Right PRC', 'Right EC', 'Right PHC', 'Left EC', 'Left PHC'],
+                        'IFG': ['parsopercularis', 'parsorbitalis', 'parstriangularis'],  # This may contain Broca's Area
+                        'MFG': ['caudalmiddlefrontal', 'rostralmiddlefrontal'],  # This may contrain DLPFC
+                        'SFG': ['superiorfrontal'],
+                        'Frontal': ['parsopercularis', 'parsorbitalis', 'parstriangularis', 'caudalmiddlefrontal',
+                                    'rostralmiddlefrontal', 'superiorfrontal'],
+                        'Temporal': ['superiortemporal', 'middletemporal', 'inferiortemporal'],
+                        'Parietal': ['inferiorparietal', 'supramarginal', 'superiorparietal', 'precuneus'],
+                        'Occipital': ['lateraloccipital', 'lingual', 'cuneus', 'pericalcarine']}
+
+        # get ROI for each electrode. THIS GETS THE FIRST, IF IT IS IN MULTIPLE SOMEHOW
+        elec_region_list = [''] * len(regions)
+        for e, elec_region in enumerate(regions):
+            for roi in roi_dict.keys():
+                if elec_region in roi_dict[roi]:
+                    elec_region_list[e] = roi
+                    continue
+
+        # get hemisphere
+        elec_hemi_list = np.array(['right'] * len(regions))
+        elec_hemi_list[elec_info[x_coord_column] < 0] = 'left'
+
+        # make new DF
+        region_df = elec_info[['label']].copy()
+        region_df['region'] = elec_region_list
+        region_df['hemi'] = elec_hemi_list
+
+        return region_df
+
+
+def bin_electrodes_by_region(elec_info, elec_column1='stein.region', elec_column2='ind.region',
+                                 x_coord_column='ind.x', roi_dict=None):
+        """
+
+        Given that we often want to look at effecfs based on brain region, this will take a subject's electrode info
+        and bin it into broad ROIs based on lobe and hemisphere. In the project's terminology, `elec_column1` should
+        usually be the 'loc_tag' information.
+
+        Parameters
+        ----------
+        elec_column1: str
+            DataFrame column to use for localization info.
+        elec_column2: str
+            Additional secondary DataFrame column to use.
+        x_coord_column: str
+            Column specifying the x-coordinate of each electrode. Used to determine left vs right hemisphere.
+            Positive values are right hemisphere.
+        roi_dict: dict
+            A mapping of elec_column1/elec_column2 values to broader ROIs. If not given, the default will be used:
+
+            {'Hipp': ['Left CA1', 'Left CA2', 'Left CA3', 'Left DG', 'Left Sub', 'Right CA1', 'Right CA2',
+                                 'Right CA3', 'Right DG', 'Right Sub'],
+             'MTL': ['Left PRC', 'Right PRC', 'Right EC', 'Right PHC', 'Left EC', 'Left PHC'],
+             'Frontal': ['parsopercularis', 'parsorbitalis', 'parstriangularis', 'caudalmiddlefrontal',
+                                    'rostralmiddlefrontal', 'superiorfrontal'],
+            'Temporal': ['superiortemporal', 'middletemporal', 'inferiortemporal'],
+            'Parietal': ['inferiorparietal', 'supramarginal', 'superiorparietal', 'precuneus'],
+            'Occipital' ['lateraloccipital', 'lingual', 'cuneus', 'pericalcarine']}
+
+
+        Returns
+        -------
+        A pandas.DataFrame with columns 'region' and 'hemi'.
+
+        """
+
+        # smoosh the columns together, with the first column taking precedence
+        regions = elec_info[elec_column1].fillna(elec_info[elec_column2]).fillna(value='')
+
+        # if no dictionary is providing, use this
+        if roi_dict is None:
+            roi_dict = {'Hipp': ['Left CA1', 'Left CA2', 'Left CA3', 'Left DG', 'Left Sub', 'Right CA1', 'Right CA2',
+                                 'Right CA3', 'Right DG', 'Right Sub'],
+                        'MTL': ['Left PRC', 'Right PRC', 'Right EC', 'Right PHC', 'Left EC', 'Left PHC'],
+                        'Frontal': ['parsopercularis', 'parsorbitalis', 'parstriangularis', 'caudalmiddlefrontal',
+                                    'rostralmiddlefrontal', 'superiorfrontal'],
+                        'Temporal': ['superiortemporal', 'middletemporal', 'inferiortemporal'],
+                        'Parietal': ['inferiorparietal', 'supramarginal', 'superiorparietal', 'precuneus'],
+                        'Occipital': ['lateraloccipital', 'lingual', 'cuneus', 'pericalcarine']}
+
+        # get ROI for each electrode. THIS GETS THE FIRST, IF IT IS IN MULTIPLE SOMEHOW
+        elec_region_list = [''] * len(regions)
+        for e, elec_region in enumerate(regions):
+            for roi in roi_dict.keys():
+                if elec_region in roi_dict[roi]:
+                    elec_region_list[e] = roi
+                    continue
+
+        # get hemisphere
+        elec_hemi_list = np.array(['right'] * len(regions))
+        elec_hemi_list[elec_info[x_coord_column] < 0] = 'left'
+
+        # make new DF
+        region_df = elec_info[['label']].copy()
+        region_df['region'] = elec_region_list
+        region_df['hemi'] = elec_hemi_list
+
+        return region_df
